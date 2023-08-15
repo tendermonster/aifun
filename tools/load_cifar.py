@@ -46,7 +46,7 @@ class CIFAR10:
             all_objects.append(
                 self._unpickle("dataset/cifar-10-batches-py/data_batch_" + str(i + 1))
             )
-
+        all_objects.append(self._unpickle("dataset/cifar-10-batches-py/test_batch"))
         return all_objects
 
     def _get_cifar(self):

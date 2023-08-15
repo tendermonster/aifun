@@ -1,6 +1,7 @@
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 import random
 
 from model.model import ResNet18
@@ -17,8 +18,12 @@ if __name__ == "__main__":
     random.shuffle(traindata)
 
     train = traindata[:30000]
-    test = traindata[30000:40000]
-    val = traindata[40000:]
+    test = traindata[30000:45000]
+    val = traindata[45000:]
+
+    # Initialize a DataLoader
+    batch_size = 32
+    dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
 
     net = ResNet18()
     criterion = CrossEntropyLoss()
@@ -28,7 +33,7 @@ if __name__ == "__main__":
     # todo make batch size
     for epoch in range(30):  # loop over the dataset multiple times
         running_loss = 0.0
-        for i, data in enumerate(train):
+        for i, data in enumerate(dataloader):
             # todo make the thing with
             input, label = data
             if input.dim() == 3:
