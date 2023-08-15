@@ -26,6 +26,11 @@ if __name__ == "__main__":
     dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
 
     net = ResNet18()
+    if torch.cuda.is_available():
+        print("NVIDIA GPU is available!")
+        net = net.to("cuda")
+    else:
+        print("NVIDIA GPU is not available.")
     criterion = CrossEntropyLoss()
     optimizer = SGD(net.parameters(), lr=0.001, momentum=0.9)
 
