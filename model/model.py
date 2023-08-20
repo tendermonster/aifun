@@ -55,6 +55,7 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
     in_channels = 64
+    name = "ResNet"
 
     def __init__(self, block, num_blocks, num_classes=10) -> None:
         super(ResNet, self).__init__()
@@ -68,7 +69,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
 
         self.linear = nn.Linear(512, num_classes)
-        self.softmax = nn.Softmax(dim=1)
+        # self.softmax = nn.Softmax(dim=1)
 
     def _make_layer(self, block, out_channels, num_blocks, stride=1):
         # first block sometimes have different stride
@@ -95,7 +96,13 @@ class ResNet(nn.Module):
 
 
 def ResNet18():
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    r = ResNet(BasicBlock, [2, 2, 2, 2])
+    r.name = "ResNet18"
+    return r
+
+
+def ResNet34():
+    return ResNet(BasicBlock, [3, 4, 6, 3])
 
 
 if __name__ == "__main__":

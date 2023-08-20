@@ -1,6 +1,9 @@
 dataset/*
 !dataset/.gitkeep
 model.pth
+checkpoints
+!checkpoints/.gitkeep
+tinker.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
