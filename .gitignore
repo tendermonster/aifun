@@ -4,6 +4,8 @@ model.pth
 checkpoints
 !checkpoints/.gitkeep
 tinker.py
+logs/*
+!logs/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
