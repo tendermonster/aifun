@@ -28,6 +28,7 @@ if __name__ == "__main__":
     # Initialize a Dataset
     log.log("Loading MNIST10 dataset")
     mnist = MNIST10()
+    mnistm = MNISTM10()
     train = mnist.train
     test = mnist.test
     val = mnist.val
@@ -61,6 +62,18 @@ if __name__ == "__main__":
         net.load_model("checkpoints/ResNet18_mnist_with_mnistm_stats/model_16.pth")
         net = net.model
         trainer = Trainer(net, mnist, batch_size, device, logger=log)
+        trainer.test(trainer.val_set)
+        exit()
+
+    if True:
+        mnistm.data_std = mnist.data_std
+        mnistm.data_mean = mnist.data_mean
+        net = ModelLoader(net)
+        net.load_model(
+            "checkpoints/ResNet18_1696803877/model_27.pth"
+        )  # plain mnist with mnist stats used on mnistm data
+        net = net.model
+        trainer = Trainer(net, mnistm, batch_size, device, logger=log)
         trainer.test(trainer.val_set)
         exit()
 

@@ -18,12 +18,12 @@ class MNIST10:
     img_wh = 28
     # (tensor([0.1309, 0.1309, 0.1309]), tensor([0.3018, 0.3018, 0.3018]))
     # this is 3 channel grayscale mean/std of mnist
-    # data_mean = [0.1309, 0.1309, 0.1309]
-    # data_std = [0.3018, 0.3018, 0.3018]
+    data_mean = [0.1309, 0.1309, 0.1309]
+    data_std = [0.3018, 0.3018, 0.3018]
 
     # for domain gap we use the mean and std of mnist-m
-    data_mean = [0.4412, 0.4674, 0.4427]
-    data_std = [0.1876, 0.2215, 0.1952]
+    # data_mean = [0.4412, 0.4674, 0.4427]
+    # data_std = [0.1876, 0.2215, 0.1952]
 
     training_file = "mnist_m_train.pt"
     test_file = "mnist_m_test.pt"
