@@ -5,10 +5,7 @@ import os
 import tarfile
 import requests
 import torch
-from torch.utils.data import random_split
-from torch.utils.data import DataLoader
-from torch.utils.data import Subset
-from typing import Tuple
+from torchvision import transforms
 
 
 class CIFAR10:
@@ -20,21 +17,11 @@ class CIFAR10:
 
     def __init__(self, split=[0.70, 0.15, 0.15]) -> None:
         self._download_cifar10()
-        self.data, self.labels, self.filenames = self._format_data()
-        self.train, self.test, self.val = self._split_data(split)
+        self.train, self.test, self.val = self._format_data(split)
+        # TODO also return the file names of the images
 
     def set_logger(self, logger):
         self.logger = logger
-
-    def _split_data(self, split) -> Tuple[Subset, Subset, Subset]:
-        generator = torch.Generator().manual_seed(42)
-        all_data = list(zip(self.data, self.labels))
-        data_split = random_split(all_data, split, generator=generator)
-        # return train, test, validation datasets
-        train = data_split[0]
-        test = data_split[1]
-        val = data_split[2]
-        return train, test, val
 
     def _unpickle(self, file):
         with open(file, "rb") as fo:
@@ -76,18 +63,23 @@ class CIFAR10:
         all_data = []
         all_labels = []
         all_filenames = []
-        for i in range(0, 5):
-            all_data.append(all_objects[i][b"data"])
-            all_labels.append(all_objects[i][b"labels"])
-            all_filenames.append(all_objects[i][b"filenames"])
-        all_data = np.concatenate(all_data)
-        all_labels = np.concatenate(all_labels)
+        for piece in all_objects:
+            all_data.append(piece[b"data"])
+            all_labels.append(piece[b"labels"])
+            all_filenames.append(piece[b"filenames"])
+        # to torch
+        all_data = [torch.tensor(x, dtype=torch.float32) for x in all_data]
+        all_labels = [torch.tensor(x, dtype=torch.int64) for x in all_labels]
+        all_data = torch.cat(all_data)
+        all_labels = torch.cat(all_labels)
         all_filenames = np.concatenate(all_filenames)
         return all_data, all_labels, all_filenames
 
-    def _compute_mean_std(self, data):
+    def _compute_mean_std(self):
+        data, _, _ = self._get_cifar()
+        data = data.view(-1, 3, 32, 32)
         # todo make it work with any shape
-        data = data / 255
+        data = data / 255.0
         print(data.min())
         print(data.max())
         mean = torch.mean(data, dim=(2, 3))
@@ -111,15 +103,69 @@ class CIFAR10:
         std_new = torch.std(std_new, dim=0)
         print(std_new)
         print(mean_new)
+        return mean, std
 
-        return data
+    def augment_train(self, data):
+        # random flipping
+        # random cropping
+        # random rotation
+        # random color jitter
+        # gausian noise
+
+        # for now just to play it safe normalization is done after augmentation
+
+        aug_part1 = transforms.Compose(
+            [
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomCrop(32, padding=4),
+            ]
+        )
+        data = aug_part1(data) / 255.0
+        aug_part2 = transforms.Compose(
+            [
+                transforms.Normalize(
+                    mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]
+                ),  # normalize for values between 0 and 1
+            ]
+        )
+        return aug_part2(data)
+
+    def augment_test(self, data):
+        data = data / 255.0
+        aug = transforms.Compose(
+            [
+                transforms.Normalize(
+                    mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]
+                ),  # normalize for values between 0 and 1
+            ]
+        )
+        return aug(data)
+
+    def augment_input(self, data):
+        """
+        Converts PIL image to proper model input
+
+        Args:
+            data (PIL.Image): PIL image
+
+        Returns:
+            torch.Tensor: model input
+        """
+        aug = transforms.Compose(
+            [
+                transforms.Resize(32),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]
+                ),
+            ]
+        )
+        return aug(data)
 
     def normalize_data(self, data):
         # devide by 255
-        data = data / 255
+        data = data / 255.0
         # normalize
-        # std tensor([0.2023, 0.1994, 0.2010])
-        # mean tensor([0.4914, 0.4822, 0.4465])
         std = torch.tensor([0.2023, 0.1994, 0.2010])
         mean = torch.tensor([0.4914, 0.4822, 0.4465])
         data[:, 0, :, :] = data[:, 0, :, :] - mean[0]
@@ -130,16 +176,62 @@ class CIFAR10:
         data[:, 2, :, :] = data[:, 2, :, :] / std[2]
         return data
 
-    def _format_data(self):
+    def _split_data(self, data, split=[0.70, 0.15, 0.15]):
+        """
+        Returns train test and validation sets
+
+        Args:
+            data (_type_): dataset
+            split (_type_): split ratio
+
+        Returns:
+            _type_: train, test, validation sets
+        """
+        split = np.array(split) / np.sum(split)
+        train = round(split[0], 2)
+        test = round(split[1], 2)
+        val = round(1 - train - test, 2)
+        split = [train, test, val]
+        assert sum(split) == 1
+        train_size = int(split[0] * len(data))
+        test_size = int(split[1] * len(data))
+        val_size = len(data) - train_size - test_size
+        train, val, test = (
+            data[:train_size],
+            data[train_size : train_size + test_size],
+            data[-val_size:],
+        )
+        assert len(train) + len(test) + len(val) == len(data)
+        return (
+            train,
+            test,
+            val,
+        )
+
+    def _format_data(self, split):
         data, labels, filenames = self._get_cifar()
         # convert to torch tensor
         data = torch.tensor(data, dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)
         # reshape data
         data = data.view(-1, 3, 32, 32)
-        data = self.normalize_data(data)
-        return data, labels, filenames
+        train, test, val = self._split_data(data, split)
+        # augment training dataset
+        # training dataset is augmented during training process
+        # after augmentation make sure that all the datasets have similar mean and std
+        # otherwise this would mean that the augmentation is not done properly for training dataset
+        # also all min / max values should be similar
+        train_labels, test_labels, val_labels = self._split_data(labels, split)
+        train = list(zip(train, train_labels))
+        test = list(zip(test, test_labels))
+        val = list(zip(val, val_labels))
+        train_fn, test_fn, val_fn = self._split_data(filenames, split)
+        assert len(train) == len(train_labels) == len(train_fn)
+        assert len(test) == len(test_labels) == len(test_fn)
+        assert len(val) == len(val_labels) == len(val_fn)
+        return train, test, val
 
 
 if __name__ == "__main__":
     c = CIFAR10()
+    print(c._compute_mean_std())
