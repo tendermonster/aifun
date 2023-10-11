@@ -2,12 +2,11 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from model.model import ResNet18
-from tools.load_cifar import CIFAR10
-from tools.load_model import ModelLoader
-from tools.logger import Logger
-from tools.trainer import Trainer
-
-import matplotlib.pyplot as plt
+from utils.cifar import CIFAR10
+from utils.load_model import ModelLoader
+from utils.logger import Logger
+from utils.trainer import Trainer
+from utils.dataset import Dataset
 
 # todo undersatand best practices for pytorch and ways to optimize stuff
 # implement warmup
@@ -26,10 +25,10 @@ if __name__ == "__main__":
     log.log("Starting session")
     # Initialize a Dataset
     log.log("Loading dataset")
-    cifar = CIFAR10()
-    train = cifar.train
-    test = cifar.test
-    val = cifar.val
+    cifar: Dataset = CIFAR10()
+    train = cifar.get_train()
+    test = cifar.get_test()
+    val = cifar.get_val()
 
     # Initialize a DataLoader
     batch_size = 128
@@ -58,9 +57,9 @@ if __name__ == "__main__":
     trainer = Trainer(
         net,
         cifar,
+        log,
         batch_size,
-        device,
-        logger=log,
+        str(device),
     )
     save = True
     trainer.train(100, save=True)

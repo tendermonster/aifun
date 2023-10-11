@@ -1,8 +1,9 @@
+from __future__ import annotations
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD, Adam
 from typing import Tuple
-from tools.logger import Logger
+from utils.logger import Logger
 import os
 import typing
 
@@ -10,7 +11,7 @@ import typing
 from torch.utils.data import DataLoader
 
 if typing.TYPE_CHECKING:
-    pass
+    from utils.dataset import Dataset
 
 
 class Trainer:
@@ -20,10 +21,10 @@ class Trainer:
     def __init__(
         self,
         net,
-        dataset,  # : CIFAR10 or MNISTM10
+        dataset: Dataset,  # : CIFAR10 or MNISTM10
+        logger: Logger,
         batch_size: int = 128,
         device: str = "cpu",
-        logger=None,
     ):
         self.dataset = dataset
         if logger is None:
@@ -34,9 +35,15 @@ class Trainer:
             self.root, net.name + "_" + self.log.get_timestamp()
         )
         self.net = net
-        self.train_set = DataLoader(dataset.train, batch_size=batch_size, shuffle=True)
-        self.test_set = DataLoader(dataset.test, batch_size=batch_size, shuffle=False)
-        self.val_set = DataLoader(dataset.val, batch_size=batch_size, shuffle=False)
+        self.train_set = DataLoader(
+            dataset.get_train(), batch_size=batch_size, shuffle=True
+        )
+        self.test_set = DataLoader(
+            dataset.get_test(), batch_size=batch_size, shuffle=False
+        )
+        self.val_set = DataLoader(
+            dataset.get_val(), batch_size=batch_size, shuffle=False
+        )
         self.device = device
         lr = 0.001
         # weight_decay is L2 regularization
@@ -116,7 +123,7 @@ class Trainer:
                     self.log.log("Early stopping")
                     break
 
-    def test(self, dataset) -> Tuple[float, float]:
+    def test(self, dataset: DataLoader) -> Tuple[float, float]:
         self.log.log("Testing/Evaluating")
         self.net.eval()
         testing_loss = 0.0
