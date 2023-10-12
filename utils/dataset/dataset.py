@@ -183,7 +183,7 @@ class Dataset(ABC):
         return train, test, val
 
     def get_dataset(self):
-        return self.__train, self.__test, self.__val
+        return self.__train + self.__test + self.__val
 
     def get_train(self):
         return self.__train

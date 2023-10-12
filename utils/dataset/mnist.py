@@ -1,3 +1,4 @@
+from __future__ import annotations
 import typing
 from typing_extensions import override
 import numpy as np
@@ -7,7 +8,7 @@ from torchvision import transforms, datasets
 
 import ssl
 
-from utils.dataset import Dataset
+from utils.dataset.dataset import Dataset
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
