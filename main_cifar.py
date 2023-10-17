@@ -2,11 +2,11 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from model.model import ResNet18
-from utils.cifar import CIFAR10
+from utils.dataset.cifar import CIFAR10
 from utils.load_model import ModelLoader
 from utils.logger import Logger
 from utils.trainer import Trainer
-from utils.dataset import Dataset
+from utils.dataset.dataset import Dataset
 
 # todo undersatand best practices for pytorch and ways to optimize stuff
 # implement warmup
@@ -50,16 +50,22 @@ if __name__ == "__main__":
         net = ModelLoader(net)
         net.load_model("checkpoints/ResNet18_cifar/model_23.pth")
         net = net.model
-        trainer = Trainer(net, cifar, batch_size, device, logger=log)
+        trainer = Trainer(
+            net=net,
+            dataset=cifar,
+            logger=log,
+            batch_size=batch_size,
+            device=str(device),
+        )
         trainer.test(trainer.val_set)
         exit()
 
     trainer = Trainer(
-        net,
-        cifar,
-        log,
-        batch_size,
-        str(device),
+        net=net,
+        dataset=cifar,
+        logger=log,
+        batch_size=batch_size,
+        device=str(device),
     )
     save = True
     trainer.train(100, save=True)

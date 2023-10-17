@@ -2,13 +2,11 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from model.model import ResNet18
-from tools.load_mnist import MNIST10
-from tools.load_mnist_m import MNISTM10
-from tools.load_model import ModelLoader
-from tools.logger import Logger
-from tools.trainer import Trainer
-
-import matplotlib.pyplot as plt
+from utils.dataset.mnist import MNIST10
+from utils.dataset.mnistm import MNISTM10
+from utils.load_model import ModelLoader
+from utils.logger import Logger
+from utils.trainer import Trainer
 
 # todo undersatand best practices for pytorch and ways to optimize stuff
 # implement warmup
@@ -29,9 +27,9 @@ if __name__ == "__main__":
     log.log("Loading MNIST10 dataset")
     mnist = MNIST10()
     mnistm = MNISTM10()
-    train = mnist.train
-    test = mnist.test
-    val = mnist.val
+    train = mnist.get_train()
+    test = mnist.get_test()
+    val = mnist.get_val()
 
     # Initialize a DataLoader
     batch_size = 128
@@ -53,7 +51,11 @@ if __name__ == "__main__":
     #     net = ModelLoader(net)
     #     net.load_model("checkpoints/ResNet18_1696787877/model_35.pth") # -> this is mnistm best model
     #     net = net.model
-    #     trainer = Trainer(net, mnist, batch_size, device, logger=log)
+    #     trainer = Trainer(net=net,
+    #       dataset=mnist,
+    #       logger=log,
+    #       batch_size=batch_size,
+    #       device=str(device),)
     #     trainer.test(trainer.val_set)
     #     exit()
 
@@ -61,28 +63,40 @@ if __name__ == "__main__":
         net = ModelLoader(net)
         net.load_model("checkpoints/ResNet18_mnist_with_mnistm_stats/model_16.pth")
         net = net.model
-        trainer = Trainer(net, mnist, batch_size, device, logger=log)
+        trainer = Trainer(
+            net=net,
+            dataset=mnist,
+            logger=log,
+            batch_size=batch_size,
+            device=str(device),
+        )
         trainer.test(trainer.val_set)
         exit()
 
-    if True:
-        mnistm.data_std = mnist.data_std
-        mnistm.data_mean = mnist.data_mean
+    if False:
+        mnistm.std = mnist.std
+        mnistm.mean = mnist.mean
         net = ModelLoader(net)
         net.load_model(
             "checkpoints/ResNet18_1696803877/model_27.pth"
         )  # plain mnist with mnist stats used on mnistm data
         net = net.model
-        trainer = Trainer(net, mnistm, batch_size, device, logger=log)
+        trainer = Trainer(
+            net=net,
+            dataset=mnistm,
+            logger=log,
+            batch_size=batch_size,
+            device=str(device),
+        )
         trainer.test(trainer.val_set)
         exit()
 
     trainer = Trainer(
-        net,
-        mnist,
-        batch_size,
-        device,
+        net=net,
+        dataset=mnist,
         logger=log,
+        batch_size=batch_size,
+        device=str(device),
     )
     save = True
     trainer.train(100, save=True)

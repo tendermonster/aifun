@@ -21,7 +21,9 @@ class MNIST10(Dataset):
     dataset_path = "dataset/mnist10"
 
     shape = (3, 28, 28)
+    # transform to
     img_wh = 28
+    img_wh_net = 224
     # (tensor([0.1309, 0.1309, 0.1309]), tensor([0.3018, 0.3018, 0.3018]))
     # this is 3 channel grayscale mean/std of mnist
     data_mean = [0.1309, 0.1309, 0.1309]
@@ -46,7 +48,11 @@ class MNIST10(Dataset):
 
     def __init__(self, split=[0.70, 0.15, 0.15]) -> None:
         super().__init__(
-            img_wh=self.img_wh, mean=self.data_mean, std=self.data_std, split=split
+            img_wh=self.img_wh,
+            img_wh_net=self.img_wh_net,
+            mean=self.data_mean,
+            std=self.data_std,
+            split=split,
         )
 
     def set_logger(self, logger):

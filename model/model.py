@@ -54,6 +54,7 @@ class BasicBlock(nn.Module):
 
 
 class ResNet(nn.Module):
+    # lets use the 224x224 imagenet input size
     in_channels = 64
     name = "ResNet"
 
@@ -82,11 +83,17 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = F.avg_pool2d(out, 4)  # 4x4
+        # some dirty workaround to collect intermediate outputs
+        # print(out.shape)
+        out = self.layer1(out)  # [-1, 64, 224, 224]
+        # print(out.shape)
+        out = self.layer2(out)  # [-1, 128, 112, 112]
+        # print(out.shape)
+        out = self.layer3(out)  # [-1, 256, 56, 56]
+        # print(out.shape)
+        out = self.layer4(out)  # [-1, 512, 28, 28]
+        # print(out.shape)
+        out = F.avg_pool2d(out, 28)  # [-1, 512, 1, 1]
         out = out.view(
             out.shape[0], -1
         )  # the size -1 is inferred from other dimensions
@@ -107,7 +114,7 @@ def ResNet34():
 
 if __name__ == "__main__":
     model = ResNet18()
-    x = torch.randn(4, 3, 32, 32)
+    x = torch.randn(4, 3, 224, 224)
     out = model(x)
     out = torch.max(out, 1)
     print(out)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, L1Loss
 from torch.optim import SGD, Adam
 from typing import Tuple
 from utils.logger import Logger

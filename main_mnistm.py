@@ -2,12 +2,10 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from model.model import ResNet18
-from tools.load_mnist_m import MNISTM10
-from tools.load_model import ModelLoader
-from tools.logger import Logger
-from tools.trainer import Trainer
-
-import matplotlib.pyplot as plt
+from utils.dataset.mnistm import MNISTM10
+from utils.load_model import ModelLoader
+from utils.logger import Logger
+from utils.trainer import Trainer
 
 # todo undersatand best practices for pytorch and ways to optimize stuff
 # implement warmup
@@ -27,9 +25,9 @@ if __name__ == "__main__":
     # Initialize a Dataset
     log.log("Loading MNISTM10 dataset")
     mnistm = MNISTM10()
-    train = mnistm.train
-    test = mnistm.test
-    val = mnistm.val
+    train = mnistm.get_train()
+    test = mnistm.get_test()
+    val = mnistm.get_val()
 
     # Initialize a DataLoader
     batch_size = 128
@@ -55,22 +53,28 @@ if __name__ == "__main__":
         trainer.test(trainer.val_set)
         exit()
 
-    if True:
+    if False:
         net = ModelLoader(net)
         net.load_model(
             "checkpoints/ResNet18_1696794933/model_26.pth"
         )  # mnist model trained with mnistm stats
         net = net.model
-        trainer = Trainer(net, mnistm, batch_size, device, logger=log)
+        trainer = Trainer(
+            net=net,
+            dataset=mnistm,
+            logger=log,
+            batch_size=batch_size,
+            device=str(device),
+        )
         trainer.test(trainer.val_set)
         exit()
 
     trainer = Trainer(
-        net,
-        mnistm,
-        batch_size,
-        device,
+        net=net,
+        dataset=mnistm,
         logger=log,
+        batch_size=batch_size,
+        device=str(device),
     )
     save = True
     trainer.train(100, save=True)

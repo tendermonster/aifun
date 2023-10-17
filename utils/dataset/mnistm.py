@@ -10,7 +10,7 @@ from torchvision.datasets.utils import download_and_extract_archive
 
 import ssl
 
-from utils.dataset import Dataset
+from utils.dataset.dataset import Dataset
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -29,6 +29,8 @@ class MNISTM10(Dataset):
 
     shape = (3, 28, 28)
     img_wh = 28
+    # img wh transform
+    img_wh_net: int = 224
     mean: list[float] = [0.4412, 0.4674, 0.4427]
     std: list[float] = [0.1876, 0.2215, 0.1952]
 
@@ -59,7 +61,13 @@ class MNISTM10(Dataset):
     ]
 
     def __init__(self, split: List[float] = [0.70, 0.15, 0.15]) -> None:
-        super().__init__(img_wh=self.img_wh, mean=self.mean, std=self.std, split=split)
+        super().__init__(
+            img_wh=self.img_wh,
+            img_wh_net=self.img_wh_net,
+            mean=self.mean,
+            std=self.std,
+            split=split,
+        )
 
     def set_logger(self, logger):
         self.logger = logger

@@ -13,13 +13,14 @@ ssl._create_default_https_context = ssl._create_unverified_context
 if typing.TYPE_CHECKING:
     from typing import List, Tuple
     from torch import Tensor
-    from PIL import Image
+    from PIL.Image import Image
 
 
 class Dataset(ABC):
     def __init__(
         self,
         img_wh: int,
+        img_wh_net: int,
         mean: List[float],
         std: List[float],
         split: List[float] = [0.70, 0.15, 0.15],
@@ -28,6 +29,7 @@ class Dataset(ABC):
         self.std = std
         self.mean = mean
         self.img_wh = img_wh
+        self.img_wh_net = img_wh_net
         self.split = split
         self.__train, self.__test, self.__val = self.__format_data(self.split)
 
@@ -75,8 +77,10 @@ class Dataset(ABC):
 
         aug_part1 = transforms.Compose(
             [
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomCrop(self.img_wh, padding=4),
+                transforms.Resize(self.img_wh_net),
+                transforms.RandomHorizontalFlip(p=0.25),
+                transforms.RandomVerticalFlip(p=0.25),
+                transforms.RandomErasing(p=0.5, value="random"),
             ]
         )
         data = aug_part1(data) / 255.0
@@ -90,17 +94,23 @@ class Dataset(ABC):
         return aug_part2(data)
 
     def augment_test(self, data: Tensor):
+        aug1 = transforms.Compose(
+            [
+                transforms.Resize(self.img_wh_net),
+            ]
+        )
+        data = aug1(data)
         data = data / 255.0
-        aug = transforms.Compose(
+        aug2 = transforms.Compose(
             [
                 transforms.Normalize(
                     mean=self.mean, std=self.std
                 ),  # normalize for values between 0 and 1
             ]
         )
-        return aug(data)
+        return aug2(data)
 
-    def augment_input(self, data: Tensor):
+    def augment_input(self, data: Image):
         """
         Converts PIL image to proper model input
 
@@ -112,7 +122,7 @@ class Dataset(ABC):
         """
         aug = transforms.Compose(
             [
-                transforms.Resize(self.img_wh),
+                transforms.Resize(self.img_wh_net),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=self.mean, std=self.std),
             ]
@@ -182,7 +192,7 @@ class Dataset(ABC):
         assert len(val) == len(val_labels)
         return train, test, val
 
-    def get_dataset(self):
+    def get_dataset(self) -> list[Tuple[Tensor, Tensor]]:
         return self.__train + self.__test + self.__val
 
     def get_train(self):
@@ -193,3 +203,13 @@ class Dataset(ABC):
 
     def get_val(self):
         return self.__val
+
+    def visualize_examples(self):
+        import matplotlib.pyplot as plt
+
+        data = self.get_dataset()
+        for i in data[:10]:
+            im, label = i
+            plt.imshow(im.permute(1, 2, 0))
+            plt.title(str(label))
+            plt.show()

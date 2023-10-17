@@ -5,7 +5,7 @@ import tarfile
 import requests
 import torch
 
-from utils.dataset import Dataset
+from utils.dataset.dataset import Dataset
 
 
 class CIFAR10(Dataset):
@@ -14,10 +14,14 @@ class CIFAR10(Dataset):
     # statistics of training set
     # std tensor([0.0606, 0.0612, 0.0677])
     # mean tensor([0.4914, 0.4822, 0.4465])
+    # img wh transform
+    img_wh = 32
+    img_wh_net = 224
 
     def __init__(self, split=[0.70, 0.15, 0.15]) -> None:
         super().__init__(
-            img_wh=32,
+            img_wh=self.img_wh,
+            img_wh_net=self.img_wh_net,
             mean=[0.4914, 0.4822, 0.4465],
             std=[0.0606, 0.0612, 0.0677],
             split=split,
