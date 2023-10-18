@@ -7,6 +7,11 @@ import numpy as np
 import ssl
 import typing
 from torchvision import transforms
+from matplotlib import pyplot as plt
+from torchvision.transforms.functional import InterpolationMode
+
+# from einops.layers.torch import Rearrange
+import einops
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -39,78 +44,80 @@ class Dataset(ABC):
 
     @abstractmethod
     def load_dataset(self) -> Tuple[Tensor, Tensor]:
+        # load dataset should return the dataset and labels
+        # dataset should be a tensor of shape (N, C, H, W)
+        # labels should be a tensor of shape (N, )
         raise NotImplementedError
 
+    def get_mean(self):
+        return self.mean
+
+    def get_std(self):
+        return self.std
+
     def compute_mean_std(self) -> Tuple[Tensor, Tensor]:
-        data, _ = self.load_dataset()
-        data = data.view(-1, 3, self.img_wh, self.img_wh)
-
+        # compute the mean and std of the dataset in range of [0,1]
+        data = [i[0].unsqueeze(0) for i in self.get_dataset()]
+        print(data[0].shape)
+        data = torch.cat(data, dim=0)
+        # data = data.view(-1, 3, self.img_wh, self.img_wh)
         # todo make it work with any shape
-        data = data / data.max()
-        mean = torch.mean(data, dim=(2, 3))
-        mean = torch.mean(mean, dim=0)
-        std = torch.std(data, dim=(2, 3))
-        std = torch.mean(std, dim=0)
-
-        data[:, 0, :, :] = data[:, 0, :, :] - mean[0]
-        data[:, 1, :, :] = data[:, 1, :, :] - mean[1]
-        data[:, 2, :, :] = data[:, 2, :, :] - mean[2]
-        data[:, 0, :, :] = data[:, 0, :, :] / std[0]
-        data[:, 1, :, :] = data[:, 1, :, :] / std[1]
-        data[:, 2, :, :] = data[:, 2, :, :] / std[2]
-
-        # write assertion test to test of mean is 0 and std is 1
-        mean_new = torch.mean(data, dim=(2, 3))
-        mean_new = torch.mean(mean_new, dim=0)
-        std_new = torch.std(data, dim=(2, 3))
-        std_new = torch.std(std_new, dim=0)
+        data = data / 255.0
+        # Compute mean along dimensions 0 (images), 2 (height), and 3 (width)
+        mean = torch.mean(data, dim=(0, 2, 3))
+        std = torch.std(data, dim=(0, 2, 3))
         return mean, std
 
-    def augment_train(self, data: Tensor):
-        # random flipping
-        # random cropping
-        # random rotation
-        # random color jitter
-        # gausian noise
-
-        # for now just to play it safe normalization is done after augmentation
-
-        aug_part1 = transforms.Compose(
+    def __normalize(self, data: Tensor) -> Tensor:
+        # it seems that the normalization is more robust for od
+        # but experiment with min/max standardization in future
+        aug = transforms.Compose(
             [
-                transforms.Resize(self.img_wh_net),
+                transforms.Normalize(
+                    mean=self.mean, std=self.std
+                ),  # normalize for values between 0 and  for original dataset
+            ]
+        )
+        return aug(data)
+
+    def __standardize(self, data: Tensor) -> Tensor:
+        return data / 255.0
+
+    def __resize(self, data: Tensor) -> Tensor:
+        aug = transforms.Compose(
+            [
+                transforms.Resize(
+                    self.img_wh_net, interpolation=InterpolationMode.NEAREST
+                ),
+            ]
+        )
+        return aug(data)
+
+    def augment_train(self, data: Tensor):
+        # for now just to play it safe normalization is done after augmentation
+        # TODO see if bbox need adjustement if transforms is used
+        aug = transforms.Compose(
+            [
+                transforms.Resize(
+                    self.img_wh_net, interpolation=InterpolationMode.NEAREST
+                ),
                 transforms.RandomHorizontalFlip(p=0.25),
                 transforms.RandomVerticalFlip(p=0.25),
                 transforms.RandomErasing(p=0.5, value="random"),
+                transforms.RandomAutocontrast(),
             ]
         )
-        data = aug_part1(data) / 255.0
-        aug_part2 = transforms.Compose(
-            [
-                transforms.Normalize(
-                    mean=self.mean, std=self.std
-                ),  # normalize for values between 0 and 1
-            ]
-        )
-        return aug_part2(data)
+        data = self.__standardize(data)
+        data = self.__normalize(data)
+        return data
 
     def augment_test(self, data: Tensor):
-        aug1 = transforms.Compose(
-            [
-                transforms.Resize(self.img_wh_net),
-            ]
-        )
-        data = aug1(data)
-        data = data / 255.0
-        aug2 = transforms.Compose(
-            [
-                transforms.Normalize(
-                    mean=self.mean, std=self.std
-                ),  # normalize for values between 0 and 1
-            ]
-        )
-        return aug2(data)
+        data = self.__resize(data)
+        data = self.__standardize(data)
+        data = self.__normalize(data)
+        return data
 
-    def augment_input(self, data: Image):
+    def augment_input(self, data: Image) -> Tensor:
         """
         Converts PIL image to proper model input
 
@@ -122,12 +129,14 @@ class Dataset(ABC):
         """
         aug = transforms.Compose(
             [
-                transforms.Resize(self.img_wh_net),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=self.mean, std=self.std),
+                transforms.PILToTensor(),
             ]
         )
-        return aug(data)
+        data_tensor: Tensor = aug(data)
+        data_tensor = self.__resize(data_tensor)
+        data_tensor = self.__standardize(data_tensor)
+        data_tensor = self.__normalize(data_tensor)
+        return data_tensor
 
     def __split_data(
         self, data, split=[0.70, 0.15, 0.15]
@@ -172,11 +181,13 @@ class Dataset(ABC):
     ]:
         data, labels = self.load_dataset()
         # convert to torch tensor
-        data = torch.tensor(data, dtype=torch.float32)
-        labels = torch.tensor(labels, dtype=torch.int64)
-        # reshape data
-        print(data.shape)
-        data = data.view(-1, 3, self.img_wh, self.img_wh)
+        data = data.clone().detach().to(dtype=torch.float32)
+        labels = labels.clone().detach().to(dtype=torch.uint8)
+        assert data.dtype == torch.float32
+        assert labels.dtype == torch.uint8
+        # should have this shape (N, C, H, W)
+        assert data.shape == (len(data), 3, self.img_wh, self.img_wh)
+        # data should be correctly shaped at this point!
         train, test, val = self.__split_data(data, split)
         # augment training dataset
         # training dataset is augmented during training process
@@ -205,11 +216,10 @@ class Dataset(ABC):
         return self.__val
 
     def visualize_examples(self):
-        import matplotlib.pyplot as plt
-
         data = self.get_dataset()
         for i in data[:10]:
             im, label = i
+            im = self.__standardize(im)
             plt.imshow(im.permute(1, 2, 0))
             plt.title(str(label))
             plt.show()

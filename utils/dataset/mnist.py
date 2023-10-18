@@ -4,7 +4,7 @@ from typing_extensions import override
 import numpy as np
 import os
 import torch
-from torchvision import transforms, datasets
+from torchvision import datasets
 
 import ssl
 
@@ -27,7 +27,7 @@ class MNIST10(Dataset):
     # (tensor([0.1309, 0.1309, 0.1309]), tensor([0.3018, 0.3018, 0.3018]))
     # this is 3 channel grayscale mean/std of mnist
     data_mean = [0.1309, 0.1309, 0.1309]
-    data_std = [0.3018, 0.3018, 0.3018]
+    data_std = [0.3084, 0.3084, 0.3084]
 
     # for domain gap we use the mean and std of mnist-m
 

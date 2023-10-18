@@ -2,6 +2,7 @@ import pickle
 from typing_extensions import override
 import os
 import tarfile
+import einops
 import requests
 import torch
 
@@ -75,6 +76,9 @@ class CIFAR10(Dataset):
         all_data = [torch.tensor(x, dtype=torch.float32) for x in all_data]
         all_labels = [torch.tensor(x, dtype=torch.int64) for x in all_labels]
         all_data = torch.cat(all_data)
+        all_data = einops.rearrange(
+            all_data, "b (c w h) -> b c w h", c=3, h=self.img_wh, w=self.img_wh
+        )
         all_labels = torch.cat(all_labels)
         return all_data, all_labels
 

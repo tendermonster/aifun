@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing_extensions import override
 import os
+import einops
 import torch
 import typing
 
@@ -101,9 +102,11 @@ class MNISTM10(Dataset):
 
     @override
     def load_dataset(self) -> Tuple[Tensor, Tensor]:
+        # read in data (b, w, h, c)
         train = torch.load(self.dataset_path + "/extract/" + self.training_file)
         test = torch.load(self.dataset_path + "/extract/" + self.test_file)
         all_data = torch.cat((train[0], test[0]))
+        all_data = einops.rearrange(all_data, "b w h c -> b c w h")
         all_labels = torch.cat((train[1], test[1]))
         return all_data, all_labels
 
