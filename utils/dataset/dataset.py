@@ -107,6 +107,7 @@ class Dataset(ABC):
                 transforms.RandomAutocontrast(),
             ]
         )
+        data = aug(data)
         data = self.__standardize(data)
         data = self.__normalize(data)
         return data
