@@ -3,6 +3,8 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD, Adam
 from typing import Tuple
+
+import tqdm
 from utils.logger import Logger
 import os
 import typing
@@ -71,7 +73,9 @@ class Trainer:
         self.log.log("learning rate: {}".format(self.scheduler.get_last_lr()))
         for epoch in range(epochs):  # loop over the dataset multiple times
             self.net.train()
-            for batch_idx, data in enumerate(self.train_set):
+            # for batch_idx, data in enumerate(self.train_set):
+            for batch_idx in tqdm.tqdm(range(len(self.train_set)), "Training: "):
+                data = next(iter(self.train_set))
                 # todo make the thing with
                 input, targets = data
                 if augment:
@@ -130,7 +134,8 @@ class Trainer:
         correct = 0
         total = 0
         with torch.no_grad():
-            for batch_idx, data in enumerate(dataset):
+            for batch_idx in tqdm.tqdm(range(len(self.train_set)), "Testing: "):
+                data = next(iter(self.train_set))
                 # todo make the thing with
                 input, targets = data
                 input = self.dataset.augment_test(input)

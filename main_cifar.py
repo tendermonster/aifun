@@ -24,14 +24,14 @@ if __name__ == "__main__":
     log = Logger()
     log.log("Starting session")
     # Initialize a Dataset
-    log.log("Loading dataset")
+    log.log("Loading dataset CIFAR10")
     cifar: Dataset = CIFAR10()
     train = cifar.get_train()
     test = cifar.get_test()
     val = cifar.get_val()
 
     # Initialize a DataLoader
-    batch_size = 128
+    batch_size = 32
     log.log(f"Training dataset size: {len(train)}")
     log.log(f"Batch size: {batch_size}")
 

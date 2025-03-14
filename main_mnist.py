@@ -32,7 +32,7 @@ if __name__ == "__main__":
     val = mnist.get_val()
 
     # Initialize a DataLoader
-    batch_size = 128
+    batch_size = 32
     log.log(f"Training dataset size: {len(train)}")
     log.log(f"Batch size: {batch_size}")
 
@@ -46,18 +46,22 @@ if __name__ == "__main__":
 
     # todo scheduler
 
-    # # eval model
-    # if True:
-    #     net = ModelLoader(net)
-    #     net.load_model("checkpoints/ResNet18_1696787877/model_35.pth") # -> this is mnistm best model
-    #     net = net.model
-    #     trainer = Trainer(net=net,
-    #       dataset=mnist,
-    #       logger=log,
-    #       batch_size=batch_size,
-    #       device=str(device),)
-    #     trainer.test(trainer.val_set)
-    #     exit()
+    # eval model
+    if True:
+        net = ModelLoader(net)
+        net.load_model(
+            "checkpoints/ResNet18_mnist_224_224/model_6.pth"
+        )  # -> this is mnistm best model
+        net = net.model
+        trainer = Trainer(
+            net=net,
+            dataset=mnist,
+            logger=log,
+            batch_size=batch_size,
+            device=str(device),
+        )
+        trainer.test(trainer.val_set)
+        exit()
 
     if False:
         net = ModelLoader(net)

@@ -93,7 +93,7 @@ class ResNet(nn.Module):
         # print(out.shape)
         out = self.layer4(out)  # [-1, 512, 28, 28]
         # print(out.shape)
-        out = F.avg_pool2d(out, 28)  # [-1, 512, 1, 1]
+        out = F.avg_pool2d(out, out.shape[-1])  # [-1, 512, 1, 1]
         out = out.view(
             out.shape[0], -1
         )  # the size -1 is inferred from other dimensions

@@ -104,7 +104,7 @@ class Dataset(ABC):
                 transforms.RandomHorizontalFlip(p=0.25),
                 transforms.RandomVerticalFlip(p=0.25),
                 transforms.RandomErasing(p=0.5, value="random"),
-                transforms.RandomAutocontrast(),
+                # transforms.RandomAutocontrast(),
             ]
         )
         data = aug(data)
