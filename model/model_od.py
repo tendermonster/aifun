@@ -168,6 +168,8 @@ class ResNet(nn.Module):
         # out = out.view(
         #     out.shape[0], -1
         # )  # the size -1 is inferred from other dimensions
+        for i in intermediate:
+            print(i.shape)
         return intermediate
 
 
@@ -180,14 +182,15 @@ class ModelWithHead(nn.Module):
 
     def forward(self, x):
         x = self.model(x)
-        x = self.head(x[0])
+        x = self.head(x[-1])  # 28 28
         return x
 
 
 def ResNet18() -> ModelWithHead:
+    # for performance cases lets just take last layer
     r = ResNet(BasicBlock, [2, 2, 2, 2])
     print(get_num_parameters(r))
-    model = ModelWithHead(r, DetectionHead(64, 3, 10))
+    model = ModelWithHead(r, DetectionHead(512, 3, 10))
     model.name = "ResNet18"
     return model
 
@@ -213,7 +216,6 @@ if __name__ == "__main__":
 
     out: Tuple[Tensor, Tensor, Tensor] = model(x)
     # out = torch.max(out, 1)
-    print(out)
     print(type(out))
     # print class prediction
     cls_pred = out[0]

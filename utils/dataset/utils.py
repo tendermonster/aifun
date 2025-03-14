@@ -2,7 +2,6 @@ from __future__ import annotations
 import random
 import typing
 import PIL.Image as PILImage
-from mock import patch
 import numpy as np
 from typing import Union
 from cv2.typing import MatLike
